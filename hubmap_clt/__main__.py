@@ -10,8 +10,20 @@ import pkg_resources
 from os.path import exists
 from pathlib import Path
 
+
+# Configuration
+config = {}
+try:
+    filename = os.path.join(os.path.dirname(__file__), "app.cfg")
+    with open(filename, mode="rb") as config_file:
+        exec(compile(config_file.read(), filename, "exec"), config)
+except OSError as e:
+    print("Error reading configuration file:", e)
+    sys.exit(1)
+
+INGEST_DEV_WEBSERVICE_URL = config["INGEST_DEV_WEBSERVICE_URL"]
+
 # Constants
-INGEST_DEV_WEBSERVICE_URL = "https://ingest.api.hubmapconsortium.org/"
 version = pkg_resources.require("hubmap-clt")[0].version
 
 
