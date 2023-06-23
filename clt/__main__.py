@@ -9,6 +9,7 @@ import tempfile
 
 from .clt_help import get_help
 from .config import get_config
+from .utils import normalize_path
 
 
 # Constants
@@ -143,15 +144,12 @@ def transfer(args):
         if is_successful:
             at_least_one_success.append(each)
     if len(at_least_one_success) > 0:
-        destination = args.destination.replace("\\", os.sep)
-        destination = destination.replace("/", os.sep)
-        print(f"Globus transfer successfully initiated. Files to be downloaded to <Home-Folder>/{destination} where "
-              f"Home-Folder is the default download\ndirectory designated by Globus Connect Personal. "
-              f"For instructions on how to view the current GCP download directory, visit:\n"
-              f"{config['USAGE_DOCS_URL']}. \n\nDownloading from endpoint(s): ")
+        destination = normalize_path(args.destination)
+        print(f"Globus transfer successfully initiated. Files will be downloaded to {destination}."
+              f"\n\nDownloading from endpoint(s): ")
         for endpoint in at_least_one_success:
             print(f"\t{endpoint}")
-        print(f"\nThe status of the transfer(s) may be found at https://app.globus.org/activity. For more information,"
+        print(f"\nThe status of the transfer(s) can be found at https://app.globus.org/activity. For more information,"
               f" please consult the documentation")
 
 
@@ -161,9 +159,9 @@ def transfer(args):
 def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args):
     temp = tempfile.NamedTemporaryFile(mode="w+t", delete=False)
     entity_id_name = config["ENTITY_ID_NAME"]
+    destination = normalize_path(args.destination)
     for each in endpoint_list:
         is_directory = False
-        destination = args.destination.replace("\\", "/")
         # We use "/" rather than os.sep because the file system for globus always uses "/"
         if each["specific_path"] == "/":
             full_path = each["rel_path"] + "/"
@@ -172,14 +170,14 @@ def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args):
         if os.path.basename(full_path) == "":
             is_directory = True
         if is_directory is False:
-            line = f'"{full_path}" "~/{destination}/{each[entity_id_name]}-{each["uuid"]}/{os.path.basename(full_path)}" \n'
+            line = f'"{full_path}" "{destination}/{each[entity_id_name]}-{each["uuid"]}/{os.path.basename(full_path)}" \n'
         else:
             if each["specific_path"] != "/":
                 slash_index = full_path.rstrip('/').rfind("/")
                 local_dir = full_path[slash_index:].rstrip().rstrip("/")
             else:
                 local_dir = "/"
-            line = f'"{full_path}" "~/{destination}/{each[entity_id_name]}-{each["uuid"]}/{local_dir.lstrip("/")}" --recursive \n'
+            line = f'"{full_path}" "{destination}/{each[entity_id_name]}-{each["uuid"]}/{local_dir.lstrip("/")}" --recursive \n'
         line = line.replace("\\", "/")
         temp.write(line)
     temp.seek(0)
