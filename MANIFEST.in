@@ -1,1 +1,3 @@
-recursive-include hubmap_clt *.txt
+recursive-include clt *.txt
+include clt/app.cfg clt/README.md.tmpl
+exclude README.md

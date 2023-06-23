@@ -1,26 +1,26 @@
 from setuptools import setup
-from io import open
-from os import path
 
-import pathlib
-HERE = pathlib.Path(__file__).parent
+from clt.config import get_config, generate_pypi_readme
 
-README = (HERE / "README.md").read_text()
+config = get_config()
+NAME = config["PKG_NAME"]
+AUTHOR = config["PKG_AUTHOR"]
+AUTHOR_EMAIL = config["PKG_AUTHOR_EMAIL"]
 
 setup(
-    name='hubmap-clt',
-    description='A command line interface to download multiple files and directories from Globus file transfer '
-                'service using a manifest file.',
-    version='1.1.3',
-    packages=['hubmap_clt'],
-    python_requires='>=3.6',
-    entry_points='''
+    name=NAME,
+    description="A command line interface to download multiple files and directories from Globus file transfer "
+                "service using a manifest file.",
+    version=config["PKG_VERSION"],
+    packages=["clt"],
+    python_requires=">=3.6",
+    entry_points=f"""
         [console_scripts]
-        hubmap-clt=hubmap_clt.__main__:main
-    ''',
-    author="Hubmap",
-    author_email="api-developers@hubmapconsortium.org",
-    long_description=README,
+        {NAME}=clt.__main__:main
+    """,
+    author=AUTHOR,
+    author_email=config["PKG_AUTHOR_EMAIL"],
+    long_description=generate_pypi_readme(config),
     long_description_content_type="text/markdown",
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -37,7 +37,7 @@ setup(
         "globus-cli>=3.1.4",
     ],
     keywords=[
-        "HuBMAP CLT",
+        f"{AUTHOR} CLT",
         "python"
     ]
 )
