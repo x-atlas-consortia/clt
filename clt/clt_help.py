@@ -31,8 +31,10 @@ def get_help(name: str, author: str, ex_entity_id: str, help_url: str):
 
         -v or --version          Show current installed version of {name}.
 
-        -d or --destination      Manually select a download location within the user's
-                                 home directory. For example:
+        -d or --destination      Manually select a download location. An absolute or 
+                                 relative path can be specified. Relative paths are
+                                 relative to the user's home directory. 
+                                 For example:
                                  '{name} transfer manifest-file -d Desktop'
                                  will download to the user's Desktop directory. The 
                                  directory will be created under the user home directory
