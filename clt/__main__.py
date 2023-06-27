@@ -52,7 +52,7 @@ def main():
     args.func(args)
 
 
-# This is the primary function of the hubmap_clt. Accepts a single mandatory argument which is the path/name of a
+# This is the primary function of the clt. Accepts a single mandatory argument which is the path/name of a
 # manifest file. A transfer is initiated from the uuid's and paths located within the file. Also accepts an optional
 # arguments --destination or -d which chooses a specific download location
 def transfer(args):
@@ -197,7 +197,7 @@ def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args):
 
 
 # Makes the command "globus whoami". If the user is logged in, their identity will be printed. If they are not
-# Logged in, they will be prompted to use the command "hubmap-clt login"
+# Logged in, they will be prompted to use the command "login"
 def whoami(args):
     whoami_process = subprocess.Popen(["globus", "whoami"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     whoami_show = whoami_process.communicate()[0].decode("utf-8")
