@@ -1,3 +1,1 @@
-recursive-include clt *.txt
-include clt/app.cfg clt/README.md.tmpl
-exclude README.md
+include src/atlas_consortia_clt/common/app.cfg

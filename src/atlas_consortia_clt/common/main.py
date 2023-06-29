@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import os.path
 import re
@@ -7,35 +6,30 @@ import subprocess
 import sys
 import tempfile
 
-from .clt_help import get_help
-from .config import get_config
+from atlas_consortia_clt import __version__
+from atlas_consortia_clt.common.config import Config
 
-
-# Constants
-config = get_config()
-PKG_NAME = config["PKG_NAME"]
-PKG_VERSION = config["PKG_VERSION"]
-PKG_AUTHOR = config["PKG_AUTHOR"]
 
 # This handles the argument parsing for the command line interface. Business logic is relegated to the individual
 # functions corresponding to each subcommand
-def main():
-    help_text = get_help(PKG_NAME, PKG_AUTHOR, config["EXAMPLE_ENTITY_ID"], config["USAGE_DOCS_URL"])
-
+def launch_command(config: Config):
     # Configure the top level Parser
-    parser = argparse.ArgumentParser(prog=PKG_NAME, description=f"{PKG_AUTHOR} Command Line Transfer", usage=help_text)
+    parser = argparse.ArgumentParser(prog=config.name, description=f"{config.consortium} Command Line Transfer", usage=config.help_txt)
     subparsers = parser.add_subparsers()
 
     # Create Subparsers to give subcommands
-    parser_transfer = subparsers.add_parser("transfer", prog=f"{PKG_NAME}-transfer", usage=help_text, help=None)
+    parser_transfer = subparsers.add_parser("transfer", prog=f"{config.name}-transfer", usage=config.help_txt, help=None)
     parser_transfer.add_argument("manifest", type=str)
-    parser_transfer.add_argument("-d", "--destination", default=f"{PKG_AUTHOR.lower()}-downloads", type=str)
-    parser_login = subparsers.add_parser("login", usage=help_text, help=None, prog=f"{PKG_NAME}-login")
-    parser_whoami = subparsers.add_parser("whoami", usage=help_text, help=None, prog=f"{PKG_NAME}-whoami")
-    parser_logout = subparsers.add_parser("logout", usage=help_text, help=None, prog=f"{PKG_NAME}-logout")
+    parser_transfer.add_argument("-d", "--destination", default=f"{config.consortium.lower()}-downloads", type=str)
+
+    parser_login = subparsers.add_parser("login", usage=config.help_txt, help=None, prog=f"{config.name}-login")
+
+    parser_whoami = subparsers.add_parser("whoami", usage=config.help_txt, help=None, prog=f"{config.name}-whoami")
+
+    parser_logout = subparsers.add_parser("logout", usage=config.help_txt, help=None, prog=f"{config.name}-logout")
 
     # Assign subparsers to their respective functions
-    parser_transfer.set_defaults(func=transfer)
+    parser_transfer.set_defaults(func=transfer, config=config)
     parser_login.set_defaults(func=login)
     parser_whoami.set_defaults(func=whoami)
     parser_logout.set_defaults(func=logout)
@@ -43,24 +37,24 @@ def main():
     # Parse the arguments and call appropriate functions
     if len(sys.argv) == 1 or "-h" in sys.argv or "--help" in sys.argv:
         print("usage: ", end="")
-        print(help_text)
+        print(config.help_txt)
         sys.exit(0)
     if "-v" in sys.argv or "--version" in sys.argv:
-        print(f"version: {PKG_VERSION}")
+        print(f"version: {__version__}")
         sys.exit(0)
     args = parser.parse_args()
-    args.func(args)
+    args.func(args, config)
 
 
 # This is the primary function of the clt. Accepts a single mandatory argument which is the path/name of a
 # manifest file. A transfer is initiated from the uuid's and paths located within the file. Also accepts an optional
 # arguments --destination or -d which chooses a specific download location
-def transfer(args):
+def transfer(args, config: Config):
     # Verify existence of the manifest file
     file_name = args.manifest
     if not os.path.exists(file_name):
         print(f"The file {file_name} cannot be found. You may need to include the path to the file. Example: \n"
-              f"/Documents/manifest.txt \n")
+              f"Documents/manifest.txt \n")
         sys.exit(1)
 
     # Obtain the local-id of the endpoint
@@ -110,16 +104,17 @@ def transfer(args):
     if len(id_list) == 0:
         print(f"File {file_name} contained nothing or only blank lines. \n"
               f"Each line on the manifest must be the id for the dataset/upload, followed by its path and \n"
-              f"separated with a space. Example: {config['EXAMPLE_ENTITY_ID']} /expr.h5ad")
+              f"separated with a space. Example: {config.entity_id} /expr.h5ad")
         sys.exit(1)
     # send the list of uuid's to the ingest webservice to retrieve the endpoint uuid and relative path.
-    r = requests.post(f"{config['INGEST_WEBSERVICE_URL']}entities/file-system-rel-path", json=id_list)
+    r = requests.post(f"{config.ingest_url}/entities/file-system-rel-path", json=id_list)
     path_json = r.json()
     if r.status_code != 200:
         print(f"There were problems with {len(path_json)} dataset id's in {file_name}:\n")
         for each in path_json:
             print(f"{each['id']}: {each['message']} \n")
         sys.exit(1)
+
     # Create a list of the unique endpoint uuid's. For each entry in the list, a separate call to globus transfer
     # must be made
     unique_globus_endpoint_ids = []
@@ -139,7 +134,7 @@ def transfer(args):
         for item in path_json:
             if item["globus_endpoint_uuid"] == each:
                 endpoint_list.append(item)
-        is_successful = batch_transfer(endpoint_list, each, local_id, args)
+        is_successful = batch_transfer(endpoint_list, each, local_id, args, config)
         if is_successful:
             at_least_one_success.append(each)
     if len(at_least_one_success) > 0:
@@ -148,7 +143,7 @@ def transfer(args):
         print(f"Globus transfer successfully initiated. Files to be downloaded to <Home-Folder>/{destination} where "
               f"Home-Folder is the default download\ndirectory designated by Globus Connect Personal. "
               f"For instructions on how to view the current GCP download directory, visit:\n"
-              f"{config['USAGE_DOCS_URL']}. \n\nDownloading from endpoint(s): ")
+              f"{config.docs_url}. \n\nDownloading from endpoint(s): ")
         for endpoint in at_least_one_success:
             print(f"\t{endpoint}")
         print(f"\nThe status of the transfer(s) may be found at https://app.globus.org/activity. For more information,"
@@ -158,9 +153,9 @@ def transfer(args):
 # Construct the file used for the globus batch tranfer. Each source endpoint id needs a separate globus transfer.
 # This also allows each one to have a unique task id which is relayed back to the user. A temporary file is created
 # and lines from the incoming manifest file are transformed into how they are needed by globus
-def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args):
+def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args, config: Config):
     temp = tempfile.NamedTemporaryFile(mode="w+t", delete=False)
-    entity_id_name = config["ENTITY_ID_NAME"]
+    entity_id_name = config.entity_id_name
     for each in endpoint_list:
         is_directory = False
         destination = args.destination.replace("\\", "/")
@@ -198,32 +193,28 @@ def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args):
 
 # Makes the command "globus whoami". If the user is logged in, their identity will be printed. If they are not
 # Logged in, they will be prompted to use the command "login"
-def whoami(args):
+def whoami(args, config: Config):
     whoami_process = subprocess.Popen(["globus", "whoami"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     whoami_show = whoami_process.communicate()[0].decode("utf-8")
     if whoami_process.returncode == 0:
         print(whoami_show)
     else:
-        print(f"MissingLoginError: Missing login for auth.globus.org, please run \n\n \t{PKG_NAME} login\n")
+        print(f"MissingLoginError: Missing login for auth.globus.org, please run \n\n \t{config.name} login\n")
 
 # Forces a login to globus through the default web browser
-def login(args):
-    print(f"You are running '{PKG_NAME} login', which should automatically open a browser window for you to login. \n \n")
+def login(args, config: Config):
+    print(f"You are running '{config.name} login', which should automatically open a browser window for you to login. \n \n")
     login_process = subprocess.Popen(["globus", "login", "--force"], stdout=subprocess.PIPE)
     login_process.wait()
-    print(f"You have successfully logged in to the {PKG_AUTHOR} Command-Line Transfer! You can check your primary identity"
-          f" with {PKG_NAME} whoami.\n Logout of the {PKG_AUTHOR} Command-Line Transfer with '{PKG_NAME} logout'")
+    print(f"You have successfully logged in to the {config.consortium} Command-Line Transfer! You can check your primary identity"
+          f" with {config.name} whoami.\n Logout of the {config.consortium} Command-Line Transfer with '{config.name} logout'")
     login_process.communicate()[0].decode('utf-8')
 
 
 # Logs the user out of globus
-def logout(args):
+def logout(args, config: Config):
     logout_process = subprocess.Popen(["globus", "logout"], stdout=subprocess.PIPE)
     print("Are you sure you want to logout? [y/N]:")
     logout_process.wait()
-    print(f"\nYou are now successfully logged out of the {PKG_AUTHOR} Command-Line Transfer.")
+    print(f"\nYou are now successfully logged out of the {config.consortium} Command-Line Transfer.")
     logout_process.communicate()[0].decode("utf-8")
-
-
-if __name__ == "__main__":
-    main()

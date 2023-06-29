@@ -1,10 +1,55 @@
 # Command-Line Transfer
 
-Command-Line Transfer (CLT) is a command-line interface (CLI) used to download multiple files and directories from the Globus file transfer service. The CLT initiates a transfer from a Globus endpoint to the [Globus Connect Personal](https://www.globus.org/globus-connect-personal) application. CLT is a generic project used by HuBMAP and SenNet for their respective CLT distributions.
+Command-Line Transfer (CLT) is a command-line interface (CLI) used to download multiple files and directories from the Globus file transfer service. The CLT initiates a transfer from a Globus endpoint to the [Globus Connect Personal](https://www.globus.org/globus-connect-personal) application. CLT provides `hubmap-clt` and `sennet-clt` command-line interfaces for HuBMAP and SenNet, respectively.
 
-## Building and Publishing
+## Usage
 
-A `clt/app.cfg` configuration file is required to build a specific distribution of the CLT. Example `app.cfg` files for HuBMAP and SenNet are
-located in the `clt` directory.
+CLT provides `hubmap-clt` and `sennet-clt` command-line interfaces. The following documentation uses `<consortium>-clt` in examples. Please replace `<consortium>` with `hubmap` or `sennet`.
 
-See the [Python Documentation](https://packaging.python.org/en/latest/tutorials/packaging-projects/#generating-distribution-archives) for detailed instructions on building and publishing the distribution.
+Usage documentation can also be found by running the following command:
+```
+<consortium>-clt -h
+```
+### Login
+
+A one-time login is required for any download session. For non-public data, you must log in with your HuBMAP or SenNet account. For publicly available data, you can log in with any account accepted by the login form (Google and OrCID). Log in can be initiated using the following command:
+
+``` 
+<consortium>-clt login
+```
+
+### Logout
+
+Logout can be used to log out the current user.
+```
+<consortium>-clt logout
+```
+
+### Transfer
+
+A data transfer and download can be initiated using the transfer command and a manifest file. You must be logged in to use the transfer command.
+```
+<consortium>-clt transfer <PATH/TO/MANIFEST/FILE> 
+```
+An optional destination argument can be specified. The destination is the directory on the user's computer where data will be downloaded. The directory will be created if it doesn't exist. The destination argument is relative to the user's home directory (~). For example, `--destination Desktop/<consortium>-data` corresponds to an absolute path of `~/Desktop/<consortium>-data`. The default destination directory is `~/<consortium>-downloads`.
+```
+<consortium>-clt transfer <PATH/TO/MANIFEST/FILE> --destination <PATH/TO/DESTINATION/DIRECTORY>
+```
+
+### Whoami
+
+Whoami can be used to display the information of the currently logged in user.
+``` 
+<consortium>-clt whoami
+```
+
+## Additional Documentation
+
+Additional documentation can be found at the [HuBMAP](https://software.docs.hubmapconsortium.org/clt) and [SenNet](https://docs.sennetconsortium.org/clt) documentation pages.
+
+
+## Development
+
+A `src/atlas_consortia_clt/common/app.cfg` configuration file is required to build the CLT. An example `app.cfg` file is located in the `src/atlas_consortia_clt/common` directory.
+
+See the [Python Documentation](https://packaging.python.org/en/latest/tutorials/packaging-projects/#generating-distribution-archives) for detailed instructions on building and publishing.
