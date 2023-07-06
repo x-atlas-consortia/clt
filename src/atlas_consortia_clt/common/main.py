@@ -19,7 +19,7 @@ def launch_command(config: Config):
 
     # Create Subparsers to give subcommands
     parser_transfer = subparsers.add_parser("transfer", prog=f"{config.name}-transfer", usage=config.help_txt, help=None)
-    parser_transfer.add_argument("manifest", type=str)
+    parser_transfer.add_argument("manifest_file_path", type=str)
     parser_transfer.add_argument("-d", "--destination", default=f"{config.consortium.lower()}-downloads", type=str)
 
     parser_login = subparsers.add_parser("login", usage=config.help_txt, help=None, prog=f"{config.name}-login")
@@ -51,7 +51,7 @@ def launch_command(config: Config):
 # arguments --destination or -d which chooses a specific download location
 def transfer(args, config: Config):
     # Verify existence of the manifest file
-    file_name = args.manifest
+    file_name = args.manifest_file_path
     if not os.path.exists(file_name):
         print(f"The file {file_name} cannot be found. You may need to include the path to the file. Example: \n"
               f"Documents/manifest.txt \n")

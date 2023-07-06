@@ -5,7 +5,7 @@ def get_help(config: Config) -> str:
     """Returns a help message for the command line tool."""
 
     return f"""
-        {config.name} [-h | --help] [transfer manifest-file | login | logout | whoami]
+        {config.name} [-h | --help] [transfer <PATH/TO/MANIFEST/FILE> | login | logout | whoami]
 
         {config.consortium} Command-Line Transfer
 
@@ -15,31 +15,32 @@ def get_help(config: Config) -> str:
 
         Commands: One of the following commands is required:
 
-        transfer manifest-file   Transfer files specified in manifest-file (see
-                                 below for example) using Globus Transfer.
-                                 The transfered files will be stored in the
-                                 directory "{config.consortium.lower()}-download" under the user's
-                                 home directory.
+        transfer <PATH/TO/MANIFEST/FILE>    Transfer files specified in manifest-file (see
+                                            below for example) using Globus Transfer.
+                                            The transferred files will be stored in the
+                                            directory "{config.consortium.lower()}-download" under the user's
+                                            home directory or in the directory specified using the optional 
+                                            --destination argument.
 
-        login                    Login to Globus
+        login                               Login to Globus
 
-        logout                   Logout of Globus
+        logout                              Logout of Globus
 
-        whoami                   Displays the information of the user who is
-                                 currently logged in.  If no user is logged
-                                 a message will be displayed prompting the user
-                                 to log in.
+        whoami                              Displays the information of the user who is
+                                            currently logged in.  If no user is logged
+                                            a message will be displayed prompting the user
+                                            to log in.
 
-        -h or --help             Show this help message.
+        -h or --help                        Show this help message.
 
-        -v or --version          Show current installed version of {config.name}.
+        -v or --version                     Show current installed version of {config.name}.
 
-        -d or --destination      Manually select a download location within the user's
-                                 home directory. For example:
-                                 '{config.name} transfer manifest-file -d Desktop'
-                                 will download to the user's Desktop directory. The 
-                                 directory will be created under the user home directory
-                                 if it doesn't already exist.
+        -d or --destination                 Manually select a download location within the user's
+                                            home directory. For example:
+                                            '{config.name} transfer manifest-file -d Desktop'
+                                            will download to the user's Desktop directory. The 
+                                            directory will be created under the user home directory
+                                            if it doesn't already exist.
 
         Manifest Files:
         Manifest files contain two columns: the {config.consortium} identifer and the file or directory specifier. 
