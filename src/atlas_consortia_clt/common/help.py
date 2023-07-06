@@ -54,6 +54,6 @@ def get_help(config: Config) -> str:
 
         dataset_id	file_or_dir_specifier   # header line is ignored
         60ed8e03152b51d5d9c8fc04e20fa5e3 /  # retrieve all files for given dataset uuid
-        {config.entity_id} /ometiffs/VAN0016-LK-202-89-IMS_PosMode_multilayer.ome.tiff  # retrives image file for dataset {config.entity_id}
-        {config.entity_id} /ometiffs/separate/  # retrieves directory of mages files for dataset {config.entity_id}
+        {config.entity_id} /ometiffs/VAN0016-LK-202-89-IMS_PosMode_multilayer.ome.tiff  # retrieves image file for dataset {config.entity_id}
+        {config.entity_id} /ometiffs/separate/  # retrieves directory of files for dataset {config.entity_id}
     """
