@@ -50,6 +50,20 @@ Additional documentation can be found at the [HuBMAP](https://software.docs.hubm
 
 ## Development
 
-A `src/atlas_consortia_clt/common/app.cfg` configuration file is required to build the CLT. An example `app.cfg` file is located in the `src/atlas_consortia_clt/common` directory.
+A `src/atlas_consortia_clt/common/app.cfg` configuration file is required to build the CLT. An example `app.cfg.example` file is located in the `src/atlas_consortia_clt/common` directory. Replace the values in `app.cfg.example` and rename the file to `app.cfg`.
 
-See the [Python Documentation](https://packaging.python.org/en/latest/tutorials/packaging-projects/#generating-distribution-archives) for detailed instructions on building and publishing.
+### Building and Publishing
+
+Install the `build` package and build the project by running the following commands in the root directory. These commands should generate a `dist` directory.
+```
+python3 -m pip install --upgrade build
+python3 -m build
+```
+
+Install the `twine` package and upload the build files to PyPI by running the following commands. The second command will prompt for a PyPI username and password. 
+```
+python3 -m pip install --upgrade twine
+python3 -m twine upload dist/*
+```
+
+See the [Python Documentation](https://packaging.python.org/en/latest/tutorials/packaging-projects/#generating-distribution-archives) for more detailed instructions on building and publishing.
