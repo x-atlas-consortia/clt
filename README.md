@@ -52,6 +52,12 @@ Additional documentation can be found at the [HuBMAP](https://software.docs.hubm
 
 A `src/atlas_consortia_clt/common/app.cfg` configuration file is required to build the CLT. An example `app.cfg.example` file is located in the `src/atlas_consortia_clt/common` directory. Replace the values in `app.cfg.example` and rename the file to `app.cfg`.
 
+When contributing to the CLT, run the following commands in the root directory to install the editable package.
+```
+python3 -m pip install --upgrade pip setuptools
+python3 -m pip install -e .
+```
+
 ### Building and Publishing
 
 Install the `build` package and build the project by running the following commands in the root directory. These commands should generate a `dist` directory.
