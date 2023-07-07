@@ -128,9 +128,16 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-#ignore PyCharm files
+# configuration
+app.cfg
+
+# ignore IDE files
 .idea/
 ../.idea/
+.vscode/
+
+# MacOS
+.DS_Store
 
 #ignore Python virtual environment used for testing
 test-manifests/virt-env

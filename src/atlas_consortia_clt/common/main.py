@@ -1,79 +1,72 @@
-#!/usr/bin/env python3
-import re
 import argparse
 import os.path
+import re
+import requests
 import subprocess
 import sys
-import requests
 import tempfile
-import pkg_resources
-from os.path import exists
-from pathlib import Path
 
-# Constants
-INGEST_DEV_WEBSERVICE_URL = "https://ingest.api.hubmapconsortium.org/"
-version = pkg_resources.require("hubmap-clt")[0].version
+from atlas_consortia_clt import __version__
+from atlas_consortia_clt.common.config import Config
 
 
 # This handles the argument parsing for the command line interface. Business logic is relegated to the individual
 # functions corresponding to each subcommand
-def main():
-    # Import help text from file
-    p = Path(__file__).with_name("clt-help.txt")
-    with p.open() as file:
-        help_text = file.read()
-
+def launch_command(config: Config):
     # Configure the top level Parser
-    parser = argparse.ArgumentParser(prog='hubmap-clt', description='Hubmap Command Line Transfer', usage=help_text)
+    parser = argparse.ArgumentParser(prog=config.name, description=f"{config.consortium} Command Line Transfer", usage=config.help_txt)
     subparsers = parser.add_subparsers()
 
     # Create Subparsers to give subcommands
-    parser_transfer = subparsers.add_parser('transfer', prog='hubmap-clt-transfer', usage=help_text, help=None)
-    parser_transfer.add_argument('manifest', type=str)
-    parser_transfer.add_argument('-d', '--destination', default='hubmap-downloads', type=str)
-    parser_login = subparsers.add_parser('login', usage=help_text, help=None, prog='hubmap-clt-login')
-    parser_whoami = subparsers.add_parser('whoami', usage=help_text, help=None, prog='hubmap-clt-whoami')
-    parser_logout = subparsers.add_parser('logout', usage=help_text, help=None, prog='hubmap-clt-logout')
+    parser_transfer = subparsers.add_parser("transfer", prog=f"{config.name}-transfer", usage=config.help_txt, help=None)
+    parser_transfer.add_argument("manifest_file_path", type=str)
+    parser_transfer.add_argument("-d", "--destination", default=f"{config.consortium.lower()}-downloads", type=str)
+
+    parser_login = subparsers.add_parser("login", usage=config.help_txt, help=None, prog=f"{config.name}-login")
+
+    parser_whoami = subparsers.add_parser("whoami", usage=config.help_txt, help=None, prog=f"{config.name}-whoami")
+
+    parser_logout = subparsers.add_parser("logout", usage=config.help_txt, help=None, prog=f"{config.name}-logout")
 
     # Assign subparsers to their respective functions
-    parser_transfer.set_defaults(func=transfer)
+    parser_transfer.set_defaults(func=transfer, config=config)
     parser_login.set_defaults(func=login)
     parser_whoami.set_defaults(func=whoami)
     parser_logout.set_defaults(func=logout)
 
     # Parse the arguments and call appropriate functions
-    if len(sys.argv) == 1 or '-h' in sys.argv or '--help' in sys.argv:
+    if len(sys.argv) == 1 or "-h" in sys.argv or "--help" in sys.argv:
         print("usage: ", end="")
-        print(help_text)
+        print(config.help_txt)
         sys.exit(0)
-    if '-v' in sys.argv or '--version' in sys.argv:
-        print(f"version: {version}")
+    if "-v" in sys.argv or "--version" in sys.argv:
+        print(f"version: {__version__}")
         sys.exit(0)
     args = parser.parse_args()
-    args.func(args)
+    args.func(args, config)
 
 
-# This is the primary function of the hubmap_clt. Accepts a single mandatory argument which is the path/name of a
+# This is the primary function of the clt. Accepts a single mandatory argument which is the path/name of a
 # manifest file. A transfer is initiated from the uuid's and paths located within the file. Also accepts an optional
 # arguments --destination or -d which chooses a specific download location
-def transfer(args):
+def transfer(args, config: Config):
     # Verify existence of the manifest file
-    file_name = args.manifest
-    if not exists(file_name):
+    file_name = args.manifest_file_path
+    if not os.path.exists(file_name):
         print(f"The file {file_name} cannot be found. You may need to include the path to the file. Example: \n"
-              f"/Documents/manifest.txt \n")
+              f"Documents/manifest.txt \n")
         sys.exit(1)
 
     # Obtain the local-id of the endpoint
     local_id_process = subprocess.Popen(["globus", "endpoint", "local-id"], stdout=subprocess.PIPE)
-    local_id = local_id_process.communicate()[0].decode('utf-8')
+    local_id = local_id_process.communicate()[0].decode("utf-8")
     if local_id_process.returncode != 0:
         print(local_id)
         sys.exit(1)
 
     # Verify that the endpoint is connected
     endpoint_show_process = subprocess.Popen(["globus", "endpoint", "show", local_id], stdout=subprocess.PIPE)
-    endpoint_show = endpoint_show_process.communicate()[0].decode('utf-8')
+    endpoint_show = endpoint_show_process.communicate()[0].decode("utf-8")
     if endpoint_show_process.returncode != 0:
         print(endpoint_show)
         sys.exit(1)
@@ -98,7 +91,7 @@ def transfer(args):
     for x in f:
         if x.startswith("dataset_id") is False:
             if x != "" and x != "\n":
-                pattern = '^(\\S+)[ \t]+([^\t\n]+)'
+                pattern = "^(\\S+)[ \t]+([^\t\n]+)"
                 matches = re.search(pattern, x)
                 if matches is None:
                     print(f"There was a problem with one of the entries in {file_name}. Please review {file_name} and "
@@ -111,16 +104,17 @@ def transfer(args):
     if len(id_list) == 0:
         print(f"File {file_name} contained nothing or only blank lines. \n"
               f"Each line on the manifest must be the id for the dataset/upload, followed by its path and \n"
-              f"separated with a space. Example: HBM744.FNLN.846 /expr.h5ad")
+              f"separated with a space. Example: {config.entity_id} /expr.h5ad")
         sys.exit(1)
     # send the list of uuid's to the ingest webservice to retrieve the endpoint uuid and relative path.
-    r = requests.post(f"{INGEST_DEV_WEBSERVICE_URL}entities/file-system-rel-path", json=id_list)
+    r = requests.post(f"{config.ingest_url}/entities/file-system-rel-path", json=id_list)
     path_json = r.json()
     if r.status_code != 200:
         print(f"There were problems with {len(path_json)} dataset id's in {file_name}:\n")
         for each in path_json:
             print(f"{each['id']}: {each['message']} \n")
         sys.exit(1)
+
     # Create a list of the unique endpoint uuid's. For each entry in the list, a separate call to globus transfer
     # must be made
     unique_globus_endpoint_ids = []
@@ -128,10 +122,10 @@ def transfer(args):
     for each in path_json:
         each_dict = {}
         for item in manifest_list:
-            if each['id'] in item.keys():
+            if each["id"] in item.keys():
                 each_dict = item
                 break
-        each["specific_path"] = each_dict[each['id']].strip('"').strip()
+        each["specific_path"] = each_dict[each["id"]].strip('"').strip()
         if each["globus_endpoint_uuid"] not in unique_globus_endpoint_ids:
             unique_globus_endpoint_ids.append(each["globus_endpoint_uuid"])
     at_least_one_success = []
@@ -140,7 +134,7 @@ def transfer(args):
         for item in path_json:
             if item["globus_endpoint_uuid"] == each:
                 endpoint_list.append(item)
-        is_successful = batch_transfer(endpoint_list, each, local_id, args)
+        is_successful = batch_transfer(endpoint_list, each, local_id, args, config)
         if is_successful:
             at_least_one_success.append(each)
     if len(at_least_one_success) > 0:
@@ -149,7 +143,7 @@ def transfer(args):
         print(f"Globus transfer successfully initiated. Files to be downloaded to <Home-Folder>/{destination} where "
               f"Home-Folder is the default download\ndirectory designated by Globus Connect Personal. "
               f"For instructions on how to view the current GCP download directory, visit:\n"
-              f"https://software.docs.hubmapconsortium.org/clt. \n\nDownloading from endpoint(s): ")
+              f"{config.docs_url}. \n\nDownloading from endpoint(s): ")
         for endpoint in at_least_one_success:
             print(f"\t{endpoint}")
         print(f"\nThe status of the transfer(s) may be found at https://app.globus.org/activity. For more information,"
@@ -159,8 +153,9 @@ def transfer(args):
 # Construct the file used for the globus batch tranfer. Each source endpoint id needs a separate globus transfer.
 # This also allows each one to have a unique task id which is relayed back to the user. A temporary file is created
 # and lines from the incoming manifest file are transformed into how they are needed by globus
-def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args):
-    temp = tempfile.NamedTemporaryFile(mode='w+t', delete=False)
+def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args, config: Config):
+    temp = tempfile.NamedTemporaryFile(mode="w+t", delete=False)
+    entity_id_name = config.entity_id_name
     for each in endpoint_list:
         is_directory = False
         destination = args.destination.replace("\\", "/")
@@ -172,20 +167,20 @@ def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args):
         if os.path.basename(full_path) == "":
             is_directory = True
         if is_directory is False:
-            line = f'"{full_path}" "~/{destination}/{each["hubmap_id"]}-{each["uuid"]}/{os.path.basename(full_path)}" \n'
+            line = f'"{full_path}" "~/{destination}/{each[entity_id_name]}-{each["uuid"]}/{os.path.basename(full_path)}" \n'
         else:
             if each["specific_path"] != "/":
                 slash_index = full_path.rstrip('/').rfind("/")
-                local_dir = full_path[slash_index:].rstrip().rstrip('/')
+                local_dir = full_path[slash_index:].rstrip().rstrip("/")
             else:
                 local_dir = "/"
-            line = f'"{full_path}" "~/{destination}/{each["hubmap_id"]}-{each["uuid"]}/{local_dir.lstrip("/")}" --recursive \n'
+            line = f'"{full_path}" "~/{destination}/{each[entity_id_name]}-{each["uuid"]}/{local_dir.lstrip("/")}" --recursive \n'
         line = line.replace("\\", "/")
         temp.write(line)
     temp.seek(0)
     globus_transfer_process = subprocess.Popen(["globus", "transfer", globus_endpoint_uuid, local_id, "--batch",
                                                 temp.name], stdout=subprocess.PIPE)
-    globus_transfer = globus_transfer_process.communicate()[0].decode('utf-8')
+    globus_transfer = globus_transfer_process.communicate()[0].decode("utf-8")
     temp.close()
     os.unlink(temp.name)
     if globus_transfer_process.returncode != 0:
@@ -197,33 +192,29 @@ def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args):
 
 
 # Makes the command "globus whoami". If the user is logged in, their identity will be printed. If they are not
-# Logged in, they will be prompted to use the command "hubmap-clt login"
-def whoami(args):
+# Logged in, they will be prompted to use the command "login"
+def whoami(args, config: Config):
     whoami_process = subprocess.Popen(["globus", "whoami"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    whoami_show = whoami_process.communicate()[0].decode('utf-8')
+    whoami_show = whoami_process.communicate()[0].decode("utf-8")
     if whoami_process.returncode == 0:
         print(whoami_show)
     else:
-        print(f"MissingLoginError: Missing login for auth.globus.org, please run \n\n \thubmap-cli login\n")
+        print(f"MissingLoginError: Missing login for auth.globus.org, please run \n\n \t{config.name} login\n")
 
 # Forces a login to globus through the default web browser
-def login(args):
-    print("You are running 'hubmap-clt login', which should automatically open a browser window for you to login. \n \n")
+def login(args, config: Config):
+    print(f"You are running '{config.name} login', which should automatically open a browser window for you to login. \n \n")
     login_process = subprocess.Popen(["globus", "login", "--force"], stdout=subprocess.PIPE)
     login_process.wait()
-    print('You have successfully logged in to the HuBMAP Command-Line Transfer! You can check your primary identity'
-          ' with hubmap-clt whoami.\n Logout of the HuBMAP Command-Line Transfer with hubmap-clt logout')
+    print(f"You have successfully logged in to the {config.consortium} Command-Line Transfer! You can check your primary identity"
+          f" with {config.name} whoami.\n Logout of the {config.consortium} Command-Line Transfer with '{config.name} logout'")
     login_process.communicate()[0].decode('utf-8')
 
 
 # Logs the user out of globus
-def logout(args):
+def logout(args, config: Config):
     logout_process = subprocess.Popen(["globus", "logout"], stdout=subprocess.PIPE)
     print("Are you sure you want to logout? [y/N]:")
     logout_process.wait()
-    print("\nYou are now successfully logged out of the HuBMAP Command-Line Transfer.")
-    logout_process.communicate()[0].decode('utf-8')
-
-
-if __name__ == '__main__':
-    main()
+    print(f"\nYou are now successfully logged out of the {config.consortium} Command-Line Transfer.")
+    logout_process.communicate()[0].decode("utf-8")

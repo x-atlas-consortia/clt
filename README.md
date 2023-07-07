@@ -1,60 +1,75 @@
-# hubmap-clt
+# Command-Line Transfer
 
----
+Command-Line Transfer (CLT) is a command-line interface (CLI) used to download multiple files and directories from the Globus file transfer service. The CLT initiates a transfer from a Globus endpoint to the [Globus Connect Personal](https://www.globus.org/globus-connect-personal) application. CLT provides `hubmap-clt` and `sennet-clt` command-line interfaces for HuBMAP and SenNet, respectively.
 
-A command line interface to download multiple files and directories from the Globus file transfer service.
+## Usage
 
-### Overview
+CLT provides `hubmap-clt` and `sennet-clt` command-line interfaces. The following documentation uses `<consortium>-clt` in examples. Please replace `<consortium>` with `hubmap` or `sennet`.
 
-The HuBMAP Command-Line Transfer uses the Globus cli to transfer files from a manifest file. This file contains the ID (UUID or HuBMAP ID) and the path to the specific file or directory to be downloaded. 
+Usage documentation can also be found by running the following command:
+```
+<consortium>-clt -h
+```
+### Login
 
-### Installing  and Using hubmap-clt
+A one-time login is required for any download session. For non-public data, you must log in with your HuBMAP or SenNet account. For publicly available data, you can log in with any account accepted by the login form (Google and ORCID). Log in can be initiated using the following command:
 
-The HuBMAP Command-Line Transfer requires a local Globus Connect Personal Endpoint to be connected. The user must have an account with Globus and be logged into both the local endpoint as well as the Globus command line interface. Hubmap-clt is available through PyPi and can be installed with:
-
-```bash
-pip3 hubmap-clt
+``` 
+<consortium>-clt login
 ```
 
-hubmap-clt requirements can be found [here](requirements.txt)
+### Logout
 
-Consult <a href="https://software.docs.hubmapconsortium.org/">Installing hubmap-clt</a> and Consult <a href="https://software.docs.hubmapconsortium.org/">Using hubmap-clt</a> for full documentation on getting started with hubmap-clt as we as information on the required Globus software. 
-
-### Building and Publishing hubmap-clt
-
-<a href="https://pypi.org/project/setuptools/">SetupTools</a> and <a href="https://pypi.org/project/wheel/">Wheel</a> is required to build the clt distribution. <a href="https://pypi.org/project/twine/">Twine</a> is required to publish to Pypi
-
-Build the distribution directory with: 
-
-```bash
-python3 setup.py sdist bdist_wheel
+Logout can be used to log out the current user.
+```
+<consortium>-clt logout
 ```
 
-from within the hubmap-clt project directory
+### Transfer
 
-To publish, from inside the project directory, run:
-
-```bash
-twine upload dist/*
+A data transfer and download can be initiated using the transfer command and a manifest file. You must be logged in to use the transfer command.
+```
+<consortium>-clt transfer <PATH/TO/MANIFEST/FILE> 
+```
+An optional destination argument can be specified. The destination is the directory on the user's computer where data will be downloaded. The directory will be created if it doesn't exist. The destination argument is relative to the user's home directory (~). For example, `--destination Desktop/<consortium>-data` corresponds to an absolute path of `~/Desktop/<consortium>-data`. The default destination directory is `~/<consortium>-downloads`.
+```
+<consortium>-clt transfer <PATH/TO/MANIFEST/FILE> --destination <PATH/TO/DESTINATION/DIRECTORY>
 ```
 
-A prompt to enter login information to the hubmap Pypi account will appear
+### Whoami
 
-### Files
+Whoami can be used to display the information of the currently logged in user.
+``` 
+<consortium>-clt whoami
+```
 
-This code contains:
+## Additional Documentation
 
-**\_\_main\_\_.py**: Contains the implementation of the command-line interface as well as the logic for the clt.
-
-Inside of **\_\_main\_\_.py** are the following classes:
-
-* whoami: Informs the user if they are logged into Globus
-* login: Initiates a Globus login using the default web browser
-* transfer: Sets up a transfer into the user's downloads file. Accepts a single required argument. This argument is the name of a manifest file which contains information on the files to be downloaded
-* batch_transfer: Calls globus batch transfer for each source collection represented in the manifest file. 
+Additional documentation can be found at the [HuBMAP](https://software.docs.hubmapconsortium.org/clt) and [SenNet](https://docs.sennetconsortium.org/libraries/clt) documentation pages.
 
 
+## Development
 
+A `src/atlas_consortia_clt/common/app.cfg` configuration file is required to build the CLT. An example `app.cfg.example` file is located in the `src/atlas_consortia_clt/common` directory. Replace the values in `app.cfg.example` and rename the file to `app.cfg`.
 
+When contributing to the CLT, run the following commands in the root directory to install the editable package.
+```
+python3 -m pip install --upgrade pip setuptools
+python3 -m pip install -e .
+```
 
+### Building and Publishing
 
+Install the `build` package and build the project by running the following commands in the root directory. These commands should generate a `dist` directory.
+```
+python3 -m pip install --upgrade build
+python3 -m build
+```
+
+Install the `twine` package and upload the build files to PyPI by running the following commands. The second command will prompt for a PyPI username and password. 
+```
+python3 -m pip install --upgrade twine
+python3 -m twine upload dist/*
+```
+
+See the [Python Documentation](https://packaging.python.org/en/latest/tutorials/packaging-projects/#generating-distribution-archives) for more detailed instructions on building and publishing.

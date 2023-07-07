@@ -1,1 +1,1 @@
-recursive-include hubmap_clt *.txt
+include src/atlas_consortia_clt/common/app.cfg

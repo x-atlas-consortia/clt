@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atlas-consortia-clt"
+authors = [
+  { name="Atlas Consortia", email="api-developers@hubmapconsortium.org" },
+]
+description = "HuBMAP and SenNet command-line interface to download data using a manifest file."
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+license = {text = "MIT"}
+keywords = ["HuBMAP CLT", "SenNet CLT", "HuBMAP", "SenNet", "CLT", "Command Line Transfer", "Manifest"]
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools.dynamic]
+version = {attr = "atlas_consortia_clt.__version__"}
+dependencies = {file = "requirements.txt"}
+
+[project.scripts]
+hubmap-clt = "atlas_consortia_clt.hubmap_clt:entry"
+sennet-clt = "atlas_consortia_clt.sennet_clt:entry"
+
+[project.urls]
+"Homepage" = "https://github.com/x-atlas-consortia/clt"
+"Bug Tracker" = "https://github.com/x-atlas-consortia/clt/issues"
