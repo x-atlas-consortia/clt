@@ -199,22 +199,44 @@ def whoami(args, config: Config):
     if whoami_process.returncode == 0:
         print(whoami_show)
     else:
-        print(f"MissingLoginError: Missing login for auth.globus.org, please run \n\n \t{config.name} login\n")
+        print(f"You are not logged in. Login with '{config.name} login'")
 
 # Forces a login to globus through the default web browser
 def login(args, config: Config):
-    print(f"You are running '{config.name} login', which should automatically open a browser window for you to login. \n \n")
+    # Check if the user is logged in
+    whoami_process = subprocess.Popen(["globus", "whoami"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    whoami_show = whoami_process.communicate()[0].decode("utf-8").strip()
+    if whoami_process.returncode == 0:
+        print(f"You are already logged in as {whoami_show}. Logout with '{config.name} logout'")
+        return
+
+    print(f"You are running '{config.name} login', which should automatically open a browser window for you to login.\n")
     login_process = subprocess.Popen(["globus", "login", "--force"], stdout=subprocess.PIPE)
     login_process.wait()
-    print(f"You have successfully logged in to the {config.consortium} Command-Line Transfer! You can check your primary identity"
-          f" with {config.name} whoami.\n Logout of the {config.consortium} Command-Line Transfer with '{config.name} logout'")
+    print(f"You have successfully logged in to the {config.consortium} Command-Line Transfer! You can check your primary identity "
+          f"with {config.name} whoami.\nLogout of the {config.consortium} Command-Line Transfer with '{config.name} logout'")
     login_process.communicate()[0].decode('utf-8')
 
 
 # Logs the user out of globus
 def logout(args, config: Config):
-    logout_process = subprocess.Popen(["globus", "logout"], stdout=subprocess.PIPE)
-    print("Are you sure you want to logout? [y/N]:")
+    # Check if the user is logged in
+    whoami_process = subprocess.Popen(["globus", "whoami"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    whoami_process.communicate()[0].decode("utf-8").strip()
+    if whoami_process.returncode != 0:
+        print(f"You are not logged in. Login with '{config.name} login'")
+        return
+    
+    # Prompt the user to confirm that they want to logout
+    user_input = None
+    while user_input is None or user_input.lower() not in ["y", "n", ""]:
+        user_input = input("Are you sure you want to logout? [y/N]: ")
+
+    if user_input.lower() != "y":
+        print("Logout cancelled.")
+        return
+
+    # Logout of globus
+    logout_process = subprocess.Popen(["globus", "logout", "--yes"], stdout=subprocess.PIPE)
     logout_process.wait()
     print(f"\nYou are now successfully logged out of the {config.consortium} Command-Line Transfer.")
-    logout_process.communicate()[0].decode("utf-8")
