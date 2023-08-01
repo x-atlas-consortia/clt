@@ -1,4 +1,5 @@
 import argparse
+import collections
 import os.path
 import re
 import requests
@@ -87,7 +88,7 @@ def transfer(args, config: Config):
     # A list of the ID's is necessary to send to the ingest webservice. The dictionary is used to map the output of the
     # webservice back to the manifest entry it came from.
     id_list = []
-    manifest_list = []
+    manifest_list = collections.defaultdict(list)
     for x in f:
         if x.startswith("dataset_id") is False:
             if x != "" and x != "\n":
@@ -97,10 +98,8 @@ def transfer(args, config: Config):
                     print(f"There was a problem with one of the entries in {file_name}. Please review {file_name} and "
                           f"for any formatting errors")
                     sys.exit(1)
-                manifest_dict = {}
                 id_list.append(matches.group(1).strip('"'))
-                manifest_dict[matches.group(1).strip('"')] = matches.group(2).strip('"')
-                manifest_list.append(manifest_dict)
+                manifest_list[matches.group(1).strip('"')].append(matches.group(2).strip('"'))
     if len(id_list) == 0:
         print(f"File {file_name} contained nothing or only blank lines. \n"
               f"Each line on the manifest must be the id for the dataset/upload, followed by its path and \n"
@@ -115,28 +114,20 @@ def transfer(args, config: Config):
             print(f"{each['id']}: {each['message']} \n")
         sys.exit(1)
 
-    # Create a list of the unique endpoint uuid's. For each entry in the list, a separate call to globus transfer
-    # must be made
-    unique_globus_endpoint_ids = []
-    # Add the particular path from manifest_dict into path_dict
-    for each in path_json:
-        each_dict = {}
-        for item in manifest_list:
-            if each["id"] in item.keys():
-                each_dict = item
-                break
-        each["specific_path"] = each_dict[each["id"]].strip('"').strip()
-        if each["globus_endpoint_uuid"] not in unique_globus_endpoint_ids:
-            unique_globus_endpoint_ids.append(each["globus_endpoint_uuid"])
+    unique_manifest_items = list({item["id"]: item for item in path_json}.values())
+
+    globus_endpoints = collections.defaultdict(list)
+    for item in unique_manifest_items:
+        entity_id = item["id"]
+        manifest_items = [{**item, "specific_path": m } for m in manifest_list[entity_id]]
+        globus_endpoints[item["globus_endpoint_uuid"]].extend(manifest_items)
+
     at_least_one_success = []
-    for each in unique_globus_endpoint_ids:
-        endpoint_list = []
-        for item in path_json:
-            if item["globus_endpoint_uuid"] == each:
-                endpoint_list.append(item)
-        is_successful = batch_transfer(endpoint_list, each, local_id, args, config)
+    for globus_endpoint_uuid in list(globus_endpoints.keys()):
+        endpoint_items = globus_endpoints[globus_endpoint_uuid]
+        is_successful = batch_transfer(endpoint_items, globus_endpoint_uuid, local_id, args, config)
         if is_successful:
-            at_least_one_success.append(each)
+            at_least_one_success.append(globus_endpoint_uuid)
     if len(at_least_one_success) > 0:
         destination = args.destination.replace("\\", os.sep)
         destination = destination.replace("/", os.sep)
