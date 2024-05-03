@@ -2,10 +2,12 @@ import argparse
 import collections
 import os.path
 import re
-import requests
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
+
+import requests
 
 from atlas_consortia_clt import __version__
 from atlas_consortia_clt.common.config import Config
@@ -21,7 +23,9 @@ def launch_command(config: Config):
     # Create Subparsers to give subcommands
     parser_transfer = subparsers.add_parser("transfer", prog=f"{config.name}-transfer", usage=config.help_txt, help=None)
     parser_transfer.add_argument("manifest_file_path", type=str)
-    parser_transfer.add_argument("-d", "--destination", default=f"{config.consortium.lower()}-downloads", type=str)
+
+    default_dest = os.path.join("~", f"{config.consortium.lower()}-downloads")
+    parser_transfer.add_argument("-d", "--destination", default=default_dest, type=str)
 
     parser_login = subparsers.add_parser("login", usage=config.help_txt, help=None, prog=f"{config.name}-login")
 
@@ -106,6 +110,7 @@ def transfer(args, config: Config):
               f"Each line on the manifest must be the id for the dataset/upload, followed by its path and \n"
               f"separated with a space. Example: {config.entity_id} /expr.h5ad")
         sys.exit(1)
+
     # send the list of uuid's to the ingest webservice to retrieve the endpoint uuid and relative path.
     r = requests.post(f"{config.ingest_url}/entities/file-system-rel-path", json=list(id_list))
     path_json = r.json()
@@ -121,19 +126,19 @@ def transfer(args, config: Config):
         manifest_items = [{**item, "specific_path": m} for m in manifest_lists[entity_id]]
         globus_endpoints[item["globus_endpoint_uuid"]].extend(manifest_items)
 
+    destination = calculate_destination(args.destination)
+
     at_least_one_success = []
     for globus_endpoint_uuid in list(globus_endpoints.keys()):
         endpoint_items = globus_endpoints[globus_endpoint_uuid]
-        is_successful = batch_transfer(endpoint_items, globus_endpoint_uuid, local_id, args, config)
+        is_successful = batch_transfer(endpoint_items, globus_endpoint_uuid, local_id, destination, args, config)
         if is_successful:
             at_least_one_success.append(globus_endpoint_uuid)
+
     if len(at_least_one_success) > 0:
-        destination = args.destination.replace("\\", os.sep)
-        destination = destination.replace("/", os.sep)
-        print(f"Globus transfer successfully initiated. Files to be downloaded to <Home-Folder>/{destination} where "
-              f"Home-Folder is the default download\ndirectory designated by Globus Connect Personal. "
-              f"For instructions on how to view the current GCP download directory, visit:\n"
-              f"{config.docs_url}. \n\nDownloading from endpoint(s): ")
+        formatted_destination = format_destination(destination)
+        print(f"Globus transfer successfully initiated. Files to be downloaded to: \n\n\t{formatted_destination}\n\n"
+              "Downloading from endpoint(s):\n")
         for endpoint in at_least_one_success:
             print(f"\t{endpoint}")
         print("\nThe status of the transfer(s) may be found at https://app.globus.org/activity. For more information,"
@@ -143,12 +148,11 @@ def transfer(args, config: Config):
 # Construct the file used for the globus batch tranfer. Each source endpoint id needs a separate globus transfer.
 # This also allows each one to have a unique task id which is relayed back to the user. A temporary file is created
 # and lines from the incoming manifest file are transformed into how they are needed by globus
-def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args, config: Config):
+def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, destination, args, config: Config):
     temp = tempfile.NamedTemporaryFile(mode="w+t", delete=False)
     entity_id_name = config.entity_id_name
     for each in endpoint_list:
         is_directory = False
-        destination = args.destination.replace("\\", "/")
         # We use "/" rather than os.sep because the file system for globus always uses "/"
         if each["specific_path"] == "/":
             full_path = each["rel_path"] + "/"
@@ -157,17 +161,18 @@ def batch_transfer(endpoint_list, globus_endpoint_uuid, local_id, args, config: 
         if os.path.basename(full_path) == "":
             is_directory = True
         if is_directory is False:
-            line = f'"{full_path}" "~/{destination}/{each[entity_id_name]}-{each["uuid"]}/{os.path.basename(full_path)}" \n'
+            line = f'"{full_path}" "{destination}/{each[entity_id_name]}-{each["uuid"]}/{os.path.basename(full_path)}" \n'
         else:
             if each["specific_path"] != "/":
                 slash_index = full_path.rstrip('/').rfind("/")
                 local_dir = full_path[slash_index:].rstrip().rstrip("/")
             else:
                 local_dir = "/"
-            line = f'"{full_path}" "~/{destination}/{each[entity_id_name]}-{each["uuid"]}/{local_dir.lstrip("/")}" --recursive \n'
+            line = f'"{full_path}" "{destination}/{each[entity_id_name]}-{each["uuid"]}/{local_dir.lstrip("/")}" --recursive \n'
         line = line.replace("\\", "/")
         temp.write(line)
     temp.seek(0)
+
     globus_transfer_process = subprocess.Popen(["globus", "transfer", globus_endpoint_uuid, local_id, "--batch",
                                                 temp.name], stdout=subprocess.PIPE)
     globus_transfer = globus_transfer_process.communicate()[0].decode("utf-8")
@@ -190,6 +195,40 @@ def whoami(args, config: Config):
         print(whoami_show)
     else:
         print(f"You are not logged in. Login with '{config.name} login'")
+
+
+def calculate_destination(filepath):
+    if os.name == "nt":
+        # Windows
+        # Absolute paths cause issues with C:\, make all relative to home
+        filepath = filepath.replace("\\", "/")
+        home = str(Path.home())
+        if os.path.isabs(filepath):
+            destination = os.path.relpath(filepath, home)
+        elif filepath.startswith("~"):
+            filepath = os.path.expanduser(filepath)
+            filepath = os.path.abspath(filepath)
+            destination = os.path.relpath(filepath, home)
+        else:
+            filepath = os.path.abspath(filepath)
+            destination = os.path.relpath(filepath, home)
+    else:
+        if os.path.isabs(filepath):
+            destination = filepath
+        elif filepath.startswith("~"):
+            destination = os.path.expanduser(filepath)
+        else:
+            destination = os.path.abspath(filepath)
+
+    return destination
+
+
+def format_destination(destination):
+    if os.name == "nt":
+        home = str(Path.home())
+        destination = os.path.join(home, destination)
+
+    return destination
 
 
 # Forces a login to globus through the default web browser
