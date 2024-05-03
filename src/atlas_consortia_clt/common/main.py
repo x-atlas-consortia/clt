@@ -5,7 +5,6 @@ import re
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
 
 import requests
 
@@ -200,18 +199,18 @@ def whoami(args, config: Config):
 def calculate_destination(filepath):
     if os.name == "nt":
         # Windows
-        # Absolute paths cause issues with C:\, make all relative to home
         filepath = filepath.replace("\\", "/")
-        home = str(Path.home())
         if os.path.isabs(filepath):
-            destination = os.path.relpath(filepath, home)
+            drive, path = os.path.splitdrive(filepath)
+            destination = "/" + drive.replace(":", "").lower() + path.replace("\\", "/")
         elif filepath.startswith("~"):
             filepath = os.path.expanduser(filepath)
-            filepath = os.path.abspath(filepath)
-            destination = os.path.relpath(filepath, home)
+            drive, path = os.path.splitdrive(filepath)
+            destination = "/" + drive.replace(":", "").lower() + path.replace("\\", "/")
         else:
             filepath = os.path.abspath(filepath)
-            destination = os.path.relpath(filepath, home)
+            drive, path = os.path.splitdrive(filepath)
+            destination = "/" + drive.replace(":", "").lower() + path.replace("\\", "/")
     else:
         if os.path.isabs(filepath):
             destination = filepath
@@ -225,8 +224,9 @@ def calculate_destination(filepath):
 
 def format_destination(destination):
     if os.name == "nt":
-        home = str(Path.home())
-        destination = os.path.join(home, destination)
+        drive = destination[1].upper() + ":"
+        path = destination[2:].replace("/", "\\")
+        destination = os.path.join(drive, path)
 
     return destination
 
