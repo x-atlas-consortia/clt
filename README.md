@@ -45,7 +45,7 @@ Whoami can be used to display the information of the currently logged in user.
 
 ## Additional Documentation
 
-Additional documentation can be found at the [HuBMAP](https://software.docs.hubmapconsortium.org/clt) and [SenNet](https://docs.sennetconsortium.org/libraries/clt) documentation pages.
+Additional documentation can be found at the [HuBMAP](https://docs.hubmapconsortium.org/clt) and [SenNet](https://docs.sennetconsortium.org/libraries/clt) documentation pages.
 
 
 ## Development
