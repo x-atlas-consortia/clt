@@ -9,6 +9,6 @@ def entry():
         ingest_url=appcfg["HUBMAP_INGEST_URL"],
         entity_id="HBM744.FNLN.846",
         entity_id_name="hubmap_id",
-        docs_url="https://software.docs.hubmapconsortium.org/clt",
+        docs_url="https://docs.hubmapconsortium.org/clt",
     )
     main.launch_command(cfg)
