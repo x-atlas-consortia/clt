@@ -9,7 +9,7 @@ authors = [
 ]
 description = "HuBMAP and SenNet command-line interface to download data using a manifest file."
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.9"
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
