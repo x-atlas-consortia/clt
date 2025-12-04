@@ -35,6 +35,10 @@ An optional destination argument can be specified. The destination is the direct
 ```
 <consortium>-clt transfer <PATH/TO/MANIFEST/FILE> --destination <PATH/TO/DESTINATION/DIRECTORY>
 ```
+An optional `--from-protected-space` flag can be specified to download protected data belonging to a published protected `Dataset`. By default, the CLT will download public data only. The user must have access to the protected data in order for the transfer to be successful.
+```
+sennet-clt transfer <PATH/TO/MANIFEST/FILE> --from-protected-space
+```
 
 ### Whoami
 
