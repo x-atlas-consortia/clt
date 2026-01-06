@@ -22,6 +22,12 @@ def launch_command(config: Config):
     parser_transfer = subparsers.add_parser("transfer", prog=f"{config.name}-transfer", usage=config.help_txt, help=None)
     parser_transfer.add_argument("manifest_file_path", type=str)
     parser_transfer.add_argument("-d", "--destination", default=f"{config.consortium.lower()}-downloads", type=str)
+    parser_transfer.add_argument(
+        "--from-protected-space",
+        action="store_true",
+        default=False,
+        help="Download files from protected space when set",
+    )
 
     parser_login = subparsers.add_parser("login", usage=config.help_txt, help=None, prog=f"{config.name}-login")
 
@@ -101,13 +107,16 @@ def transfer(args, config: Config):
                     sys.exit(1)
                 id_list.add(matches.group(1).strip('"'))
                 manifest_lists[matches.group(1).strip('"')].append(matches.group(2).strip('"'))
+
     if len(id_list) == 0:
         print(f"File {file_name} contained nothing or only blank lines. \n"
               f"Each line on the manifest must be the id for the dataset/upload, followed by its path and \n"
               f"separated with a space. Example: {config.entity_id} /expr.h5ad")
         sys.exit(1)
+
     # send the list of uuid's to the ingest webservice to retrieve the endpoint uuid and relative path.
-    r = requests.post(f"{config.ingest_url}/entities/file-system-rel-path", json=list(id_list))
+    params = "?from-protected-space=True" if args.from_protected_space else ""
+    r = requests.post(f"{config.ingest_url}/entities/file-system-rel-path{params}", json=list(id_list))
     path_json = r.json()
     if r.status_code != 200:
         print(f"There were problems with {len(path_json)} dataset id's in {file_name}:\n")

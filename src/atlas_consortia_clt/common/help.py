@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
-def get_help(config: Config) -> str:
+if TYPE_CHECKING:
+    from atlas_consortia_clt.common.config import Config
+
+
+def get_help(config: "Config") -> str:
     """Returns a help message for the command line tool."""
 
     return f"""
@@ -18,9 +23,15 @@ def get_help(config: Config) -> str:
         transfer <PATH/TO/MANIFEST/FILE>    Transfer files specified in manifest-file (see
                                             below for example) using Globus Transfer.
                                             The transferred files will be stored in the
-                                            directory "{config.consortium.lower()}-download" under the user's
-                                            home directory or in the directory specified using the optional 
-                                            --destination argument.
+                                            directory "{config.consortium.lower()}-download" under
+                                            the user's home directory or in the directory specified
+                                            using the optional --destination argument. An optional
+                                            --from-protected-space flag can be specified to download
+                                            protected data belonging to a published protected
+                                            Dataset. By default, the CLT will download public data
+                                            only. The user must have access to the protected data in
+                                            order for the transfer to be successful.
+```
 
         login                               Login to Globus
 
