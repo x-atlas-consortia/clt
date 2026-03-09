@@ -30,6 +30,15 @@ def launch_command(config: Config):
     )
 
     parser_login = subparsers.add_parser("login", usage=config.help_txt, help=None, prog=f"{config.name}-login")
+    parser_login.add_argument(
+        "--no-browser",
+        action="store_true",
+        default=False,
+        help=(
+            "Do not open a browser for login. Used for headless environments. With this flag, a URL "
+            "will be provided in the terminal for the user to copy into a browser on another device to complete login."
+        ),
+    )
 
     parser_whoami = subparsers.add_parser("whoami", usage=config.help_txt, help=None, prog=f"{config.name}-whoami")
 
@@ -210,12 +219,15 @@ def login(args, config: Config):
         print(f"You are already logged in as {whoami_show}. Logout with '{config.name} logout'")
         return
 
-    print(f"You are running '{config.name} login', which should automatically open a browser window for you to login.\n")
-    login_process = subprocess.Popen(["globus", "login", "--force"], stdout=subprocess.PIPE)
+    if args.no_browser:
+        print(f"You are running '{config.name} login --no-browser'. You will be given a URL to open manually to complete login.\n")
+        login_process = subprocess.Popen(["globus", "login", "--force", "--no-local-server"])
+    else:
+        print(f"You are running '{config.name} login', which should automatically open a browser window for you to login.\n")
+        login_process = subprocess.Popen(["globus", "login", "--force"], stdout=subprocess.PIPE)
     login_process.wait()
     print(f"You have successfully logged in to the {config.consortium} Command-Line Transfer! You can check your primary identity "
           f"with {config.name} whoami.\nLogout of the {config.consortium} Command-Line Transfer with '{config.name} logout'")
-    login_process.communicate()[0].decode('utf-8')
 
 
 # Logs the user out of globus
