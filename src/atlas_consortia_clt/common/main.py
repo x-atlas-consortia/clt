@@ -210,8 +210,28 @@ def whoami(args, config: Config):
         print(f"You are not logged in. Login with '{config.name} login'")
 
 
+def _check_for_update(config: Config):
+    """Query PyPI for the latest released version and warn the user if a newer version is available."""
+    pypi_url = "https://pypi.org/pypi/atlas-consortia-clt/json"
+    try:
+        response = requests.get(pypi_url, timeout=5)
+        response.raise_for_status()
+        latest_version = response.json()["info"]["version"]
+        current_tuple = tuple(int(x) for x in __version__.split("."))
+        latest_tuple = tuple(int(x) for x in latest_version.split("."))
+        if latest_tuple > current_tuple:
+            print(
+                f"A new version of {config.name} is available: {latest_version} (you have {__version__}).\n"
+                f"Update with: pip install --upgrade atlas-consortia-clt\n"
+            )
+    except Exception:
+        pass
+
+
 # Forces a login to globus through the default web browser
 def login(args, config: Config):
+    _check_for_update(config)
+
     # Check if the user is logged in
     whoami_process = subprocess.Popen(["globus", "whoami"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     whoami_show = whoami_process.communicate()[0].decode("utf-8").strip()
