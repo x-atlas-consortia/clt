@@ -220,9 +220,15 @@ def _check_for_update(config: Config):
         current_tuple = tuple(int(x) for x in __version__.split("."))
         latest_tuple = tuple(int(x) for x in latest_version.split("."))
         if latest_tuple > current_tuple:
+            is_pipx = "pipx" in sys.executable
+            update_cmd = (
+                "pipx upgrade atlas-consortia-clt"
+                if is_pipx
+                else "pip install --upgrade atlas-consortia-clt"
+            )
             print(
                 f"A new version of {config.name} is available: {latest_version} (you have {__version__}).\n"
-                f"Update with: pip install --upgrade atlas-consortia-clt\n"
+                f"Update with: {update_cmd}\n"
             )
     except Exception:
         pass

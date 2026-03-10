@@ -2,6 +2,66 @@
 
 Command-Line Transfer (CLT) is a command-line interface (CLI) used to download multiple files and directories from the Globus file transfer service. The CLT initiates a transfer from a Globus endpoint to the [Globus Connect Personal](https://www.globus.org/globus-connect-personal) application. CLT provides `hubmap-clt` and `sennet-clt` command-line interfaces for HuBMAP and SenNet, respectively.
 
+## Installation
+
+### pip
+
+Install the CLT globally using pip:
+```
+pip install atlas-consortia-clt
+```
+
+### pip with a virtual environment
+
+Installing in a virtual environment keeps the CLT and its dependencies isolated from other Python projects.
+
+**macOS/Linux:**
+```
+python3 -m venv clt-env
+source clt-env/bin/activate
+pip install atlas-consortia-clt
+```
+
+**Windows:**
+```
+python -m venv clt-env
+clt-env\Scripts\activate
+pip install atlas-consortia-clt
+```
+
+To use the CLT in the future, activate the virtual environment first:
+
+**macOS/Linux:**
+```
+source clt-env/bin/activate
+```
+
+**Windows:**
+```
+clt-env\Scripts\activate
+```
+
+To deactivate the virtual environment, run the following command on any platform:
+```
+deactivate
+```
+
+### pipx
+
+[pipx](https://pipx.pypa.io) installs the CLT in its own isolated environment and automatically exposes the `hubmap-clt` and `sennet-clt` commands on your `PATH`, without affecting other Python packages.
+
+Install pipx if you don't have it. Check the [pipx documentation](https://pipx.pypa.io/stable/#install-pipx) for detailed installation instructions.
+
+Then install the CLT. The CLT relies on the `globus-cli` package and must also be installed via pipx.
+```
+pipx install atlas-consortia-clt globus-cli
+```
+
+To upgrade:
+```
+pipx upgrade atlas-consortia-clt globus-cli
+```
+
 ## Usage
 
 CLT provides `hubmap-clt` and `sennet-clt` command-line interfaces. The following documentation uses `<consortium>-clt` in examples. Please replace `<consortium>` with `hubmap` or `sennet`.
