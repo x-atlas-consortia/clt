@@ -78,6 +78,12 @@ A one-time login is required for any download session. For non-public data, you 
 <consortium>-clt login
 ```
 
+By default, login will automatically open a browser window to complete authentication. If you are in a headless environment (e.g. a remote server without a browser), use the `--no-browser` flag. This will display a URL in the terminal that you can copy and open in a browser on another device to complete the login:
+
+```
+<consortium>-clt login --no-browser
+```
+
 ### Logout
 
 Logout can be used to log out the current user.
