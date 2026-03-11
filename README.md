@@ -136,7 +136,7 @@ python3 -m pip install --upgrade build
 python3 -m build
 ```
 
-Install the `twine` package and upload the build files to PyPI by running the following commands. The second command will prompt for a PyPI username and password. 
+Install the `twine` package and upload the build files to PyPI by running the following commands. The `twine` command will prompt for a PyPI API token.
 ```
 python3 -m pip install --upgrade twine
 python3 -m twine upload dist/*
