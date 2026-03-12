@@ -31,14 +31,19 @@ def get_help(config: "Config") -> str:
                                             Dataset. By default, the CLT will download public data
                                             only. The user must have access to the protected data in
                                             order for the transfer to be successful.
-```
 
-        login                               Login to Globus
+        login                               Login to Globus. By default, login will automatically
+                                            open a browser window to complete authentication. If you
+                                            are in a headless environment (e.g. a remote server
+                                            without a browser), use the --no-browser flag. This
+                                            will display a URL in the terminal that you can copy
+                                            and open in a browser on another device to complete the
+                                            login.
 
         logout                              Logout of Globus
 
         whoami                              Displays the information of the user who is
-                                            currently logged in.  If no user is logged
+                                            currently logged in. If no user is logged in,
                                             a message will be displayed prompting the user
                                             to log in.
 
@@ -49,12 +54,12 @@ def get_help(config: "Config") -> str:
         -d or --destination                 Manually select a download location within the user's
                                             home directory. For example:
                                             '{config.name} transfer manifest-file -d Desktop'
-                                            will download to the user's Desktop directory. The 
+                                            will download to the user's Desktop directory. The
                                             directory will be created under the user home directory
                                             if it doesn't already exist.
 
         Manifest Files:
-        Manifest files contain two columns: the {config.consortium} identifer and the file or directory specifier. 
+        Manifest files contain two columns: the {config.consortium} identifer and the file or directory specifier.
         Additional information to the right of the second column, separated by a tab, can be included. An
         optional single header line starting with the column specifier "dataset_id" will be ignored.
 
