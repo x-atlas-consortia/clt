@@ -2,6 +2,66 @@
 
 Command-Line Transfer (CLT) is a command-line interface (CLI) used to download multiple files and directories from the Globus file transfer service. The CLT initiates a transfer from a Globus endpoint to the [Globus Connect Personal](https://www.globus.org/globus-connect-personal) application. CLT provides `hubmap-clt` and `sennet-clt` command-line interfaces for HuBMAP and SenNet, respectively.
 
+## Installation
+
+### pip
+
+Install the CLT globally using pip:
+```
+pip install atlas-consortia-clt
+```
+
+### pip with a virtual environment
+
+Installing in a virtual environment keeps the CLT and its dependencies isolated from other Python projects.
+
+**macOS/Linux:**
+```
+python3 -m venv clt-env
+source clt-env/bin/activate
+pip install atlas-consortia-clt
+```
+
+**Windows:**
+```
+python -m venv clt-env
+clt-env\Scripts\activate
+pip install atlas-consortia-clt
+```
+
+To use the CLT in the future, activate the virtual environment first:
+
+**macOS/Linux:**
+```
+source clt-env/bin/activate
+```
+
+**Windows:**
+```
+clt-env\Scripts\activate
+```
+
+To deactivate the virtual environment, run the following command on any platform:
+```
+deactivate
+```
+
+### pipx
+
+[pipx](https://pipx.pypa.io) installs the CLT in its own isolated environment and automatically exposes the `hubmap-clt` and `sennet-clt` commands on your `PATH`, without affecting other Python packages.
+
+Install pipx if you don't have it. Check the [pipx documentation](https://pipx.pypa.io/stable/#install-pipx) for detailed installation instructions.
+
+Then install the CLT. The CLT relies on the `globus-cli` package and must also be installed via pipx.
+```
+pipx install atlas-consortia-clt globus-cli
+```
+
+To upgrade:
+```
+pipx upgrade atlas-consortia-clt globus-cli
+```
+
 ## Usage
 
 CLT provides `hubmap-clt` and `sennet-clt` command-line interfaces. The following documentation uses `<consortium>-clt` in examples. Please replace `<consortium>` with `hubmap` or `sennet`.
@@ -16,6 +76,12 @@ A one-time login is required for any download session. For non-public data, you 
 
 ``` 
 <consortium>-clt login
+```
+
+By default, login will automatically open a browser window to complete authentication. If you are in a headless environment (e.g. a remote server without a browser), use the `--no-browser` flag. This will display a URL in the terminal that you can copy and open in a browser on another device to complete the login:
+
+```
+<consortium>-clt login --no-browser
 ```
 
 ### Logout
@@ -70,7 +136,7 @@ python3 -m pip install --upgrade build
 python3 -m build
 ```
 
-Install the `twine` package and upload the build files to PyPI by running the following commands. The second command will prompt for a PyPI username and password. 
+Install the `twine` package and upload the build files to PyPI by running the following commands. The `twine` command will prompt for a PyPI API token.
 ```
 python3 -m pip install --upgrade twine
 python3 -m twine upload dist/*

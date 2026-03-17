@@ -30,6 +30,15 @@ def launch_command(config: Config):
     )
 
     parser_login = subparsers.add_parser("login", usage=config.help_txt, help=None, prog=f"{config.name}-login")
+    parser_login.add_argument(
+        "--no-browser",
+        action="store_true",
+        default=False,
+        help=(
+            "Do not open a browser for login. Used for headless environments. With this flag, a URL "
+            "will be provided in the terminal for the user to copy into a browser on another device to complete login."
+        ),
+    )
 
     parser_whoami = subparsers.add_parser("whoami", usage=config.help_txt, help=None, prog=f"{config.name}-whoami")
 
@@ -201,8 +210,34 @@ def whoami(args, config: Config):
         print(f"You are not logged in. Login with '{config.name} login'")
 
 
+def _check_for_update(config: Config):
+    """Query PyPI for the latest released version and warn the user if a newer version is available."""
+    pypi_url = "https://pypi.org/pypi/atlas-consortia-clt/json"
+    try:
+        response = requests.get(pypi_url, timeout=5)
+        response.raise_for_status()
+        latest_version = response.json()["info"]["version"]
+        current_tuple = tuple(int(x) for x in __version__.split("."))
+        latest_tuple = tuple(int(x) for x in latest_version.split("."))
+        if latest_tuple > current_tuple:
+            is_pipx = "pipx" in sys.executable
+            update_cmd = (
+                "pipx upgrade atlas-consortia-clt"
+                if is_pipx
+                else "pip install --upgrade atlas-consortia-clt"
+            )
+            print(
+                f"A new version of {config.name} is available: {latest_version} (you have {__version__}).\n"
+                f"Update with: {update_cmd}\n"
+            )
+    except Exception:
+        pass
+
+
 # Forces a login to globus through the default web browser
 def login(args, config: Config):
+    _check_for_update(config)
+
     # Check if the user is logged in
     whoami_process = subprocess.Popen(["globus", "whoami"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     whoami_show = whoami_process.communicate()[0].decode("utf-8").strip()
@@ -210,12 +245,15 @@ def login(args, config: Config):
         print(f"You are already logged in as {whoami_show}. Logout with '{config.name} logout'")
         return
 
-    print(f"You are running '{config.name} login', which should automatically open a browser window for you to login.\n")
-    login_process = subprocess.Popen(["globus", "login", "--force"], stdout=subprocess.PIPE)
+    if args.no_browser:
+        print(f"You are running '{config.name} login --no-browser'. You will be given a URL to open manually to complete login.\n")
+        login_process = subprocess.Popen(["globus", "login", "--force", "--no-local-server"])
+    else:
+        print(f"You are running '{config.name} login', which should automatically open a browser window for you to login.\n")
+        login_process = subprocess.Popen(["globus", "login", "--force"], stdout=subprocess.PIPE)
     login_process.wait()
     print(f"You have successfully logged in to the {config.consortium} Command-Line Transfer! You can check your primary identity "
           f"with {config.name} whoami.\nLogout of the {config.consortium} Command-Line Transfer with '{config.name} logout'")
-    login_process.communicate()[0].decode('utf-8')
 
 
 # Logs the user out of globus
